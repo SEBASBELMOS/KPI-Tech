@@ -15,7 +15,16 @@ print(df)
 df['fecha_creacion'] = pd.to_datetime(df['fecha_creacion'])
 
 # Filtrar datos del año 2016 y 2022
-datos_2016_2022 = df[(df['fecha_creacion'].dt.year == 2016) | (df['fecha_creacion'].dt.year == 2022)]
+data_2019_to_2023 = df[(df['fecha_creacion'].dt.year >= 2019) & (df['fecha_creacion'].dt.year <= 2023)]
 
 # Mostrar los resultados
-print(datos_2016_2022)
+print("-----------------------------------------------------------------------------------")
+print("\n Data = 2019 to 2023")
+print(data_2019_to_2023)
+
+
+#filter (details & creation date)
+print("-----------------------------------------------------------------------------------")
+print("\n Details & creation date")
+print(df.loc[:, ['detalle', "fecha_creacion"]])
+print("-----------------------------------------------------------------------------------")
