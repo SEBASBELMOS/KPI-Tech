@@ -62,10 +62,15 @@ df['responsable.nombre'].replace({
 }, inplace=True)
 
 print(df['responsable.nombre'].unique())
-
+print(df.columns)
 # KPI FOR ASESOR
 media_por_asesor = df.groupby('responsable.nombre')['TPR_minutos'].mean().round(0).astype(int)
 frecuencia_valores = df['responsable.nombre'].value_counts()
+
+num_clientes_por_grupo = 10
+clientes_por_grupo = [df['cliente.nombre'].unique()[i:i + num_clientes_por_grupo] for i in range(0, len(df['cliente.nombre'].unique()), num_clientes_por_grupo)]
+
+grupo_actual = 0
 
 # CANAL DE RESOLUCION
 frec_canal = df['solucion.medio.valor'].value_counts()
@@ -89,6 +94,21 @@ color_map = {
     'Nathalia Rivera Posso': '#2CA02C'
 }
 
+def update_clientes_siguientes(n_clicks):
+    global grupo_actual
+    grupo_actual = (grupo_actual + 1) % len(clientes_por_grupo)
+    return update_clientes(clientes_por_grupo[grupo_actual])
+
+def update_clientes(clientes):
+    fig_cliente_nombre = px.bar(
+        x=clientes,
+        y=df[df['cliente.nombre'].isin(clientes)]['cliente.nombre'].value_counts().values,
+        labels={'x': 'Cliente', 'y': 'Número de Tickets'},
+        title=f'Volumen de tickets por Cliente (Grupo {grupo_actual + 1})',
+        color=clientes,
+        color_discrete_map=color_map,
+    )
+    return fig_cliente_nombre
 asesores_media = media_por_asesor.index.tolist()
 asesores_frecuencia = frecuencia_valores.index.tolist()
 
@@ -129,6 +149,20 @@ fig_solucion_medio_valor = px.bar(
     color=df['solucion.medio.valor'].value_counts().index,
     color_discrete_map=color_map  
 )
+fig_cliente_nombre = px.bar(
+    x=df['cliente.nombre'].value_counts().index,
+    y=df['cliente.nombre'].value_counts().values,
+    labels={'x': 'Cliente', 'y': 'Número de Tickets'},
+    title='Volumen de tickets por Cliente',
+    color=df['cliente.nombre'].value_counts().index,
+    color_discrete_map=color_map,
+)
+
+fig_cliente_nombre.update_layout(
+    xaxis_title='Cliente',
+    yaxis_title='Número de Tickets',
+    showlegend=False
+)
 
 # Dash App
 app = dash.Dash(__name__)
@@ -150,7 +184,7 @@ app.layout = html.Div([
         dcc.Tab(label='Tiempos', children=[
             html.Div([
                 dcc.Graph(figure=fig_tpr),
-                dcc.Graph(figure=fig_solucion_medio_valor),
+                dcc.Graph(figure=fig_cliente_nombre), 
             ])
         ]),
         dcc.Tab(label='Tickets Promedio', children=[
@@ -172,6 +206,8 @@ app.layout = html.Div([
     Output('bar-chart', 'figure'),
     [Input('year-dropdown', 'value')]
 )
+
+
 def update_graph(selected_year):
     filtered_df = df[df['fecha_server.$date'].dt.year == selected_year]
     avg_tickets_by_month = filtered_df.groupby('YearMonth').size().mean(level=0)
